@@ -10,6 +10,7 @@ from .on_click import on_click
 from .handle_key import handle_key
 from .reset_points import reset_points
 from .close_window import close_video_window, close_app
+from .calculate_area import calculate_area
 
 __all__ = [
     "app_state",
@@ -20,5 +21,6 @@ __all__ = [
     "reset_points",
     "close_video_window",
     "close_app",
+    "calculate_area",
 ]
 

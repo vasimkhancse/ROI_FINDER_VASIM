@@ -1,6 +1,6 @@
 """
 Frame Update and Rendering Module
-Reads incoming video frames, draws points and polygon overlays,
+Reads incoming video frames, draws points and rectangle overlays,
 and renders the live frame onto the Tkinter video label.
 """
 import cv2
@@ -10,7 +10,7 @@ from modules.state import app_state
 
 def update_frame():
     """
-    Read the next frame from the camera, render ROI points and polygon lines,
+    Read the next frame from the camera, render ROI points and rectangle lines,
     and update the Tkinter video label. Schedules the next frame update after 30ms.
     """
     if not app_state.running or app_state.cap is None:
@@ -54,7 +54,7 @@ def update_frame():
                 2
             )
 
-        # Close polygon after P4 (line from P4 back to P1)
+        # Close rectangle after P4 (line from P4 back to P1)
         if len(app_state.coordinates) == 4:
             cv2.line(
                 frame,
@@ -63,6 +63,18 @@ def update_frame():
                 (0, 255, 255),
                 2
             )
+
+            # Display area on frame in px2
+            if app_state.area is not None:
+                cv2.putText(
+                    frame,
+                    f"Area: {app_state.area} px2",
+                    (20, 35),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.75,
+                    (0, 255, 255),
+                    2
+                )
 
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 

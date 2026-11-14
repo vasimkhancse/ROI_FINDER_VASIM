@@ -1,20 +1,24 @@
 # 🎯 ROI Finder (CCTV RTSP Region of Interest)
 
-An interactive desktop application built with **Python**, **OpenCV**, and **Tkinter** to connect to RTSP CCTV camera feeds, view live video streams, and select 4-point Region of Interest (ROI) polygons with real-time visual overlays and terminal coordinate extraction.
+An interactive desktop application built with **Python**, **OpenCV**, and **Tkinter** to connect to RTSP CCTV camera feeds, view live video streams, and select 4-point Region of Interest (ROI) rectangles with real-time visual overlays, coordinate extraction, and area calculation (`Area = width * height` in `px²` / `px2`).
 
 ---
 
 ## 📌 Features
 
 - **Live RTSP Streaming:** Connect to any IP camera, CCTV NVR/DVR stream, or video feed using RTSP protocol.
-- **Interactive 4-Point Selection:** Click anywhere on the live video stream to mark 4 boundary points (`P1`, `P2`, `P3`, `P4`).
-- **Visual Polygon Overlay:**
+- **Interactive 4-Point Selection:** Click anywhere on the live video stream to mark 4 boundary points (`P1`, `P2`, `P3`, `P4`) forming a rectangle.
+- **Real-Time Rectangle Area Calculation (px² / px2):**
+  - Formula: `Area = width * height`
+  - Calculates dimensions from vertices: `width = max(x) - min(x)`, `height = max(y) - min(y)`.
+  - Live HUD overlay rendering `Area: <value> px2` directly on the video stream.
+- **Visual Rectangle Overlay:**
   - Highlights selected vertices with labeled green circles (`P1`, `P2`, `P3`, `P4`).
   - Automatically draws yellow boundary lines between consecutive points.
-  - Automatically completes and closes the polygon once the 4th point is placed.
+  - Automatically completes and closes the rectangle once the 4th point is placed.
 - **Keyboard Shortcuts:**
-  - `C`: Print the formatted coordinate list to the terminal.
-  - `R`: Clear and reset selected points.
+  - `C`: Print the formatted coordinate list and area to the terminal.
+  - `R`: Clear and reset selected points and area.
   - `Q`: Close the live video window.
 - **Modular Architecture:** Clean separation of concerns with each function separated into its own dedicated file for readability and maintainability.
 - **Graceful Resource Cleanup:** Safely releases camera streams and GUI window resources on window closure or application exit.
@@ -32,11 +36,12 @@ ROI_FINDER_VASIM/
 └── modules/                 # Modular function files
     ├── __init__.py          # Package initialization & exports
     ├── state.py             # Shared application state (singleton AppState)
+    ├── calculate_area.py    # Rectangle area calculation (width * height in px²)
     ├── connect_camera.py    # Camera connection & live window initialization
-    ├── update_frame.py      # Video frame reading & polygon drawing loop
-    ├── on_click.py          # Mouse click handler (point selection)
+    ├── update_frame.py      # Video frame reading & rectangle drawing loop
+    ├── on_click.py          # Mouse click handler (point selection & area calculation)
     ├── handle_key.py        # Keyboard shortcut handlers (C, R, Q)
-    ├── reset_points.py      # Logic to clear selected points
+    ├── reset_points.py      # Logic to clear selected points & area
     └── close_window.py      # Window closing & application exit cleanup
 ```
 
@@ -49,12 +54,13 @@ Each major function from the original monolithic file is now separated into an e
 | Module File | Primary Function | Description |
 | :--- | :--- | :--- |
 | `main.py` | `main()` | Launches the main RTSP URL input window. |
-| `modules/state.py` | `AppState` | Centralized state container holding camera capture, coordinates, and window references. |
+| `modules/state.py` | `AppState` | Centralized state container holding camera capture, coordinates, area, and window references. |
+| `modules/calculate_area.py` | `calculate_area()` | Calculates rectangle area in px2 (`Area = width * height`). |
 | `modules/connect_camera.py` | `connect_camera()` | Validates RTSP URL, verifies stream with OpenCV FFMPEG, and opens the live video window. |
-| `modules/update_frame.py` | `update_frame()` | Reads frames at 30ms intervals, resizes to 800×450, draws points/lines, and updates the Tkinter canvas. |
-| `modules/on_click.py` | `on_click(event)` | Captures mouse click coordinates `[x, y]` and manages the 4-point list. |
-| `modules/handle_key.py` | `handle_key(event)` | Processes hotkeys (`C`, `R`, `Q`) during live viewing. |
-| `modules/reset_points.py` | `reset_points()` | Clears current coordinates to start fresh. |
+| `modules/update_frame.py` | `update_frame()` | Reads frames at 30ms intervals, resizes to 800×450, draws rectangle, and renders `Area: <val> px2`. |
+| `modules/on_click.py` | `on_click(event)` | Captures mouse click coordinates `[x, y]`, manages the 4 points, and calculates rectangle area on 4th point. |
+| `modules/handle_key.py` | `handle_key(event)` | Processes hotkeys (`C`, `R`, `Q`) during live viewing, printing coordinates and area. |
+| `modules/reset_points.py` | `reset_points()` | Clears current coordinates and area to start fresh. |
 | `modules/close_window.py` | `close_video_window()`, `close_app()` | Releases `cv2.VideoCapture` and closes windows safely. |
 
 ---
@@ -111,15 +117,15 @@ python main.py
    ```
    *(Note: You can also enter `0` to test using your local webcam)*.
 3. **Connect:** Click the green **"Connect"** button.
-4. **Mark Points:** A live video window opens. Click 4 points in sequence (e.g., clockwise or counter-clockwise) to define your region of interest:
+4. **Mark Points:** A live video window opens. Click 4 points in sequence to define your rectangle:
    - Click 1: Marks `P1`
    - Click 2: Marks `P2` and draws line `P1 -> P2`
    - Click 3: Marks `P3` and draws line `P2 -> P3`
-   - Click 4: Marks `P4`, draws line `P3 -> P4`, and automatically closes `P4 -> P1`
-5. **Print Coordinates:** Press `C` on your keyboard. The exact coordinates will be printed in your console.
+   - Click 4: Marks `P4`, draws line `P3 -> P4`, closes `P4 -> P1`, and calculates area in `px2`
+5. **Print Coordinates:** Press `C` on your keyboard. The coordinates and area will be printed in your console.
 6. **Reset / Redraw:**
    - Press `R` or click the **"Reset Points"** button to clear the points and start over.
-   - Clicking again after 4 points automatically starts a new polygon.
+   - Clicking again after 4 points automatically starts a new rectangle.
 7. **Exit:** Press `Q` or close the window to stop the stream.
 
 ---
@@ -129,9 +135,9 @@ python main.py
 | Action | Control | Description |
 | :--- | :--- | :--- |
 | **Mark Point** | `Left Mouse Click` | Select vertex on the video frame. |
-| **Print Coordinates** | Key `C` | Prints coordinates list to terminal (requires 4 points). |
-| **Reset Points** | Key `R` | Clears all marked points. |
-| **Reset Button** | UI Button `Reset Points` | Clears all marked points via UI. |
+| **Print Coordinates** | Key `C` | Prints coordinates and area to terminal (requires 4 points). |
+| **Reset Points** | Key `R` | Clears marked points and area. |
+| **Reset Button** | UI Button `Reset Points` | Clears marked points via UI. |
 | **Close Video** | Key `Q` | Closes the active CCTV live stream window. |
 | **Exit Application** | Window `X` | Closes stream and quits the application cleanly. |
 
@@ -139,15 +145,21 @@ python main.py
 
 ## 📋 Example Output
 
-When 4 points are selected and you press `C`:
+When 4 points are selected:
 
 ```text
-P1 selected: [142, 98]
-P2 selected: [654, 105]
-P3 selected: [710, 395]
-P4 selected: [120, 388]
-Polygon completed! Press C to print coordinates.
-Coordinates: [[142, 98], [654, 105], [710, 395], [120, 388]]
+P1: [100, 100]
+P2: [300, 100]
+P3: [300, 250]
+P4: [100, 250]
+Rectangle completed! Width: 200px, Height: 150px, Area: 30000 px2
+```
+
+When you press `C`:
+
+```text
+Coordinates: [[100, 100], [300, 100], [300, 250], [100, 250]]
+Area: 30000 px2
 ```
 
 You can directly copy these coordinates into your computer vision models, YOLO tracking pipelines, or perimeter security scripts.

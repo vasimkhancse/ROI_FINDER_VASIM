@@ -22,6 +22,7 @@ def close_video_window():
 
     app_state.video_label = None
     app_state.coordinates.clear()
+    app_state.area = None
 
 
 def close_app():

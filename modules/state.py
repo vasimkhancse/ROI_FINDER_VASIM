@@ -21,8 +21,11 @@ class AppState:
         # OpenCV Video Capture
         self.cap: Optional[cv2.VideoCapture] = None
 
-        # Coordinates for 4-point polygon: list of [x, y]
+        # Coordinates for 4-point rectangle: list of [x, y]
         self.coordinates: List[List[int]] = []
+
+        # Area calculation in px2
+        self.area: Optional[int] = None
 
         # Video stream status
         self.running: bool = False
